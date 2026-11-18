@@ -1,13 +1,95 @@
 import http from "node:http"
+import fs from "fs"
+
+async function Readfile(filepath)
+{
+    await fs.readFile(filepath, "utf-8", (err, data)=>{
+        if (err)
+        {
+            console.log(err);
+            return
+        }
+        console.log(data)
+        return data
+    })
+}
+
+
+
+
+http.get('http://localhost:8000/about', (res) => {
+  const { statusCode } = res;
+  const contentType = res.headers['content-type'];
+
+  let error;
+  // Any 2xx status code signals a successful response but
+  // here we're only checking for 200.
+  if (statusCode !== 200) {
+    error = new Error('Request Failed.\n' +
+                      `Status Code: ${statusCode}`);
+  } else if (!/^application\/json/.test(contentType)) {
+    error = new Error('Invalid content-type.\n' +
+                      `Expected application/json but received ${contentType}`);
+  }
+  if (error) {
+    console.error(error.message);
+    // Consume response data to free up memory
+    res.resume();
+    return;
+  }
+
+  res.setEncoding('utf8');
+  let rawData = '';
+  res.on('data', (chunk) => { rawData += chunk; });
+  res.on('end', () => {
+    try {
+      const parsedData = JSON.parse(rawData);
+      console.log(parsedData);
+    } catch (e) {
+      console.error(e.message);
+    }
+  });
+}).on('error', (e) => {
+  console.error(`Got error: ${e.message}`);
+});
+
 
 // create a local server
 const server = http.createServer()
 
 server.on("request", (request, res)=>{
-     res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    data: 'Hello World!',
-  }));
+
+    if(request.url === "/about")
+    {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            data: 'About!',
+        }));
+    }
+
+    else if(request.url === "/contact-me")
+    {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            data: 'Contact-me!',
+        }));
+    }
+
+    else if(request.url === "/")
+    {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            data: 'Hello World!',
+        }));
+    }
+    
+    else{
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            data: '404',
+        }));
+          
+    }
 })
 
 server.listen(8000);
