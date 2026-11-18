@@ -1,95 +1,43 @@
-import http from "node:http"
-import fs from "fs"
+import http from "node:http";
+import fs from "fs";
 
-async function Readfile(filepath)
-{
-    await fs.readFile(filepath, "utf-8", (err, data)=>{
-        if (err)
-        {
-            console.log(err);
-            return
-        }
-        console.log(data)
-        return data
-    })
+async function Readfile(filepath) {
+  try {
+    let data = await fs.promises.readFile(filepath, "utf-8");
+    return data;
+  } catch (err) {
+    return null;
+  }
 }
 
+// create a local server
+const server = http.createServer();
 
-
-
-http.get('http://localhost:8000/about', (res) => {
-  const { statusCode } = res;
-  const contentType = res.headers['content-type'];
-
-  let error;
-  // Any 2xx status code signals a successful response but
-  // here we're only checking for 200.
-  if (statusCode !== 200) {
-    error = new Error('Request Failed.\n' +
-                      `Status Code: ${statusCode}`);
-  } else if (!/^application\/json/.test(contentType)) {
-    error = new Error('Invalid content-type.\n' +
-                      `Expected application/json but received ${contentType}`);
-  }
-  if (error) {
-    console.error(error.message);
-    // Consume response data to free up memory
-    res.resume();
-    return;
+server.on("request", async (request, res) => {
+  let added_path;
+  let status_code = 200;
+  if (request.url == "/") {
+    added_path = "/index";
+  } else if (request.url === "/contact-me") {
+    added_path = "/contact-me";
+  } else if (request.url === "/about") {
+    added_path = "/about";
+  } else {
+    added_path = "/404";
+    status_code = 404;
   }
 
-  res.setEncoding('utf8');
-  let rawData = '';
-  res.on('data', (chunk) => { rawData += chunk; });
-  res.on('end', () => {
-    try {
-      const parsedData = JSON.parse(rawData);
-      console.log(parsedData);
-    } catch (e) {
-      console.error(e.message);
-    }
-  });
-}).on('error', (e) => {
-  console.error(`Got error: ${e.message}`);
+  let filepath = `/home/program21/odin/Basic-Informational-Site${added_path}.html`;
+  let data = await Readfile(filepath);
+  if (data) {
+    res.writeHead(status_code, { "Content-Type": "text/html" });
+    res.end(data);
+  } else {
+    res.writeHead(500, {
+      "Content-Type": "text/plain",
+    });
+    res.end("Internal Server Error");
+  }
 });
 
-
-// create a local server
-const server = http.createServer()
-
-server.on("request", (request, res)=>{
-
-    if(request.url === "/about")
-    {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            data: 'About!',
-        }));
-    }
-
-    else if(request.url === "/contact-me")
-    {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            data: 'Contact-me!',
-        }));
-    }
-
-    else if(request.url === "/")
-    {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            data: 'Hello World!',
-        }));
-    }
-    
-    else{
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            data: '404',
-        }));
-          
-    }
-})
-
-server.listen(8000);
+server.listen(8080);
